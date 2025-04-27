@@ -1,0 +1,139 @@
+package handler
+
+import (
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"os"
+	"server/logger"
+	"server/util"
+	"strings"
+)
+
+/*****************
+Auth Blockchain NFT
+*******************/
+
+//store nft handler
+func StoreAuthNFTHandler(w http.ResponseWriter, r *http.Request) {
+
+	config := logger.NewConfigFromEnv()
+
+    // Initialize logger
+    log, err := logger.NewLogger(config)
+    if err != nil {
+        fmt.Printf("Failed to initialize logger: %v\n", err)
+        os.Exit(1)
+    }
+    defer log.Sync()
+
+	var Auth struct{
+		AuthWallPubAddr string `json:"authwallPubAddr"`
+		Nft string `json:"nft_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&Auth); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	conAddr, err := util.GetConAddrByAuthPubKey(Auth.AuthWallPubAddr)
+	if err != nil {
+		http.Error(w, "Error retrieving wallet address: "+err.Error(), http.StatusInternalServerError)
+		log.Error("Error retrieving wallet address: " + err.Error())
+		return
+	}
+	if conAddr == "" {
+		http.Error(w, "No wallet found for the given request address", http.StatusNotFound)
+		log.Error("No wallet found for the given request address")
+		return
+	}
+	SendMessageToClient(conAddr, "setauthnft "+ Auth.Nft)
+	log.Info("NFT stored in ")
+}
+//get nft handler
+func GetAuthNFTHandler(w http.ResponseWriter, r *http.Request) {
+	config := logger.NewConfigFromEnv()
+	log, err := logger.NewLogger(config)
+	if err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	defer log.Sync()
+
+	var Auth struct {
+		AuthWallPubAddr string `json:"authwallPubAddr"`
+	}
+	
+	if err := json.NewDecoder(r.Body).Decode(&Auth); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	conAddr, err := util.GetConAddrByAuthPubKey(Auth.AuthWallPubAddr)
+	if err != nil {
+		http.Error(w, "Error retrieving wallet address", http.StatusInternalServerError)
+		return
+	}
+
+	response, err := SendMessageToClient(conAddr, "getauthnft")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Preprocess the response to extract the NFT ID
+	var nftID string
+	parts := strings.Fields(response)
+	if len(parts) != 2 || parts[0] != "NFT_AUTH" {
+		http.Error(w, "Failed to parse NFT ID", http.StatusInternalServerError)
+		return
+	}
+	nftID = parts[1]
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"nft": nftID,
+	})
+}
+
+//remove nft handler
+func RemoveAuthNFTHandler(w http.ResponseWriter, r *http.Request) {
+	config := logger.NewConfigFromEnv()
+
+	// Initialize logger
+	log, err := logger.NewLogger(config)
+	if err != nil {
+		fmt.Printf("Failed to initialize logger: %v\n", err)
+		os.Exit(1)
+	}
+	defer log.Sync()
+	log.Info("NFT removed from ")
+
+	var Auth struct{
+		AuthWallPubAddr string `json:"authwallPubAddr"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&Auth); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	conAddr, err := util.GetConAddrByAuthPubKey(Auth.AuthWallPubAddr)
+	if err != nil {
+		http.Error(w, "Error retrieving wallet address: "+err.Error(), http.StatusInternalServerError)
+		log.Error("Error retrieving wallet address: " + err.Error())
+		return
+	}
+	if conAddr == "" {
+		http.Error(w, "No wallet found for the given request address", http.StatusNotFound)
+		log.Error("No wallet found for the given request address")
+		return
+	}
+	response, err :=SendMessageToClient(conAddr, "removeauthnft")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+	
+}
+
