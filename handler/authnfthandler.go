@@ -7,7 +7,7 @@ import (
 	"os"
 	"server/logger"
 	"server/util"
-	"strings"
+	//"strings"
 )
 
 /*****************
@@ -79,19 +79,19 @@ func GetAuthNFTHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	// Preprocess the response to extract the NFT ID
-	var nftID string
-	parts := strings.Fields(response)
-	if len(parts) != 2 || parts[0] != "NFT_AUTH" {
-		http.Error(w, "Failed to parse NFT ID", http.StatusInternalServerError)
-		return
-	}
-	nftID = parts[1]
+	// fmt.Println("Response from client:", response)
+	// // Preprocess the response to extract the NFT ID
+	// var nftID string
+	// parts := strings.Fields(response)
+	// if len(parts) != 2 || parts[0] != "NFT_AUTH " {
+	// 	http.Error(w, "Failed to parse NFT ID", http.StatusInternalServerError)
+	// 	return
+	// }
+	// nftID = parts[1]
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
-		"nft": nftID,
+		"nft": response,
 	})
 }
 
