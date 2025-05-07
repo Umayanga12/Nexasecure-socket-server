@@ -147,13 +147,20 @@ func RemoveReqNFTHandler(w http.ResponseWriter, r *http.Request) {
 		log.Error("No wallet found for the given request address")
 		return
 	}
-	response, err :=SendMessageToClient(conAddr, "removereqnft")
+	response, err := SendMessageToClient(conAddr, "removereqnft")
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	// Check if the response indicates success
+	if response == "NFT_REMOVED" {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]bool{
+			"removereqnft": true,
+		})
+	} else {
+		http.Error(w, "Failed to remove NFT", http.StatusInternalServerError)
+	}
 }

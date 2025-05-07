@@ -71,6 +71,7 @@ func HandleTCPConnection(conn net.Conn) {
 		message, err := reader.ReadString('\n')
 		if err != nil {
 			if err == io.EOF {
+				util.DeleteWallet(clientAddr)
 				fmt.Printf("Client %s disconnected\n", clientAddr)
 			}
 			return

@@ -34,8 +34,8 @@ func SignAuthwalletHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	conAddr, err := util.GetConAddrByAuthPubKey(SignNFT.AuthWallPubAddr)
 	if err != nil {
-		http.Error(w, "Error retrieving wallet address: "+err.Error(), http.StatusInternalServerError)
-		log.Error("Error retrieving wallet address: " + err.Error())
+		http.Error(w, "Error retrieving connection address: "+err.Error(), http.StatusInternalServerError)
+		log.Error("Error retrieving connection address: " + err.Error())
 		return
 	}
 	if conAddr == "" {
@@ -51,11 +51,13 @@ func SignAuthwalletHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Info("NFT sent to client for signing")
 
-	// Send the response back to the HTTP client
+	// Send the response back to the HTTP client as a JSON object
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(response))
-	
+	jsonResponse := map[string]string{
+		"response": response,
+	}
+	json.NewEncoder(w).Encode(jsonResponse)
 }
 
 //remove nft handler

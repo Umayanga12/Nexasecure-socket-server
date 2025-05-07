@@ -51,6 +51,7 @@ func StoreAuthNFTHandler(w http.ResponseWriter, r *http.Request) {
 }
 //get nft handler
 func GetAuthNFTHandler(w http.ResponseWriter, r *http.Request) {
+	//fmt.Println("GetAuthNFTHandler called")
 	config := logger.NewConfigFromEnv()
 	log, err := logger.NewLogger(config)
 	if err != nil {
@@ -62,23 +63,24 @@ func GetAuthNFTHandler(w http.ResponseWriter, r *http.Request) {
 	var Auth struct {
 		AuthWallPubAddr string `json:"authwallPubAddr"`
 	}
-	
+	//fmt.Println(Auth.AuthWallPubAddr)
 	if err := json.NewDecoder(r.Body).Decode(&Auth); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-
+	fmt.Println("AuthWallPubAddr:", Auth.AuthWallPubAddr)
 	conAddr, err := util.GetConAddrByAuthPubKey(Auth.AuthWallPubAddr)
 	if err != nil {
 		http.Error(w, "Error retrieving wallet address", http.StatusInternalServerError)
 		return
 	}
-
+	fmt.Println("ConAddr:", conAddr)
 	response, err := SendMessageToClient(conAddr, "getauthnft")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	//print("Response from client:", response)
 	// fmt.Println("Response from client:", response)
 	// // Preprocess the response to extract the NFT ID
 	// var nftID string
@@ -88,7 +90,7 @@ func GetAuthNFTHandler(w http.ResponseWriter, r *http.Request) {
 	// 	return
 	// }
 	// nftID = parts[1]
-
+	//fmt.Println("NFT ID:", response)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
 		"nft": response,
@@ -106,9 +108,8 @@ func RemoveAuthNFTHandler(w http.ResponseWriter, r *http.Request) {
 		os.Exit(1)
 	}
 	defer log.Sync()
-	log.Info("NFT removed from ")
 
-	var Auth struct{
+	var Auth struct {
 		AuthWallPubAddr string `json:"authwallPubAddr"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&Auth); err != nil {
@@ -126,14 +127,20 @@ func RemoveAuthNFTHandler(w http.ResponseWriter, r *http.Request) {
 		log.Error("No wallet found for the given request address")
 		return
 	}
-	response, err :=SendMessageToClient(conAddr, "removeauthnft")
+	var response string
+	response, err = SendMessageToClient(conAddr, "removeauthnft")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
-	
+	if response == "NFT_REMOVED" {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]bool{
+			"removereqnft": true,
+		})
+	} else {
+		http.Error(w, "Failed to remove NFT", http.StatusInternalServerError)
+	}
 }
 
