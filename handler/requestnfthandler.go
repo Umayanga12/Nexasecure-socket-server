@@ -47,9 +47,22 @@ func StoreReqNFTHandler(w http.ResponseWriter, r *http.Request) {
 		log.Error("No wallet found for the given request address")
 		return
 	}
-	SendMessageToClient(conAddr, "setreqnft "+req.Nft)
-	log.Info("NFT stored in ")
+	response, error := SendMessageToClient(conAddr, "setreqnft "+req.Nft)
+	if error != nil {
+		http.Error(w, "Error sending message to client: "+error.Error(), http.StatusInternalServerError)
+		log.Error("Error sending message to client: " + error.Error())
+		return
+	}
+	if response == "NFT_AUTH stored" {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]bool{
+			"nftstored": true,
+		})
+	} else {
+		http.Error(w, "Failed to store NFT", http.StatusInternalServerError)
+	}
 	
+	log.Info("NFT stored in " + req.RequestWallPubAddr)
 }
 //get nft handler
 func GetReqNFTHandler(w http.ResponseWriter, r *http.Request) {

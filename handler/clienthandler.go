@@ -97,8 +97,12 @@ func SendMessageToClient(clientAddr string, message string) (string, error) {
 
 	// Get client-specific response channel
 	responsesMu.Lock()
-	responseChan := responseChannels[clientAddr]
+	responseChan, responseChanExists := responseChannels[clientAddr]
 	responsesMu.Unlock()
+
+	if !responseChanExists {
+		return "", fmt.Errorf("response channel for client %s not found", clientAddr)
+	}
 
 	// Send message
 	_, err := conn.Write([]byte(message + "\n"))
@@ -109,8 +113,11 @@ func SendMessageToClient(clientAddr string, message string) (string, error) {
 	// Wait for response
 	select {
 	case response := <-responseChan:
+		if strings.TrimSpace(response) == "" {
+			return "No response from client", nil
+		}
 		return response, nil
 	case <-time.After(10 * time.Second):
-		return "", fmt.Errorf("timeout waiting for response")
+		return "No response from client", nil
 	}
 }
