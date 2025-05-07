@@ -53,16 +53,16 @@ func StoreReqNFTHandler(w http.ResponseWriter, r *http.Request) {
 		log.Error("Error sending message to client: " + error.Error())
 		return
 	}
-	if response == "NFT_AUTH stored" {
+	if response == "NFT_REQ stored" {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]bool{
 			"nftstored": true,
 		})
+		log.Info("NFT stored in " + req.RequestWallPubAddr)
 	} else {
 		http.Error(w, "Failed to store NFT", http.StatusInternalServerError)
 	}
-	
-	log.Info("NFT stored in " + req.RequestWallPubAddr)
+
 }
 //get nft handler
 func GetReqNFTHandler(w http.ResponseWriter, r *http.Request) {
