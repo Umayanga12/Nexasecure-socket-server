@@ -77,7 +77,7 @@ func GetReqNFTHandler(w http.ResponseWriter, r *http.Request) {
 	defer log.Sync()
 	log.Info("NFT retrieved from ")
 
-	if r.Method != http.MethodGet {
+	if r.Method != http.MethodPost {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 		return
 	}
@@ -85,12 +85,12 @@ func GetReqNFTHandler(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		RequestWallPubAddr string `json:"requestwallPubAddr"`
 	}
-
+	
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-
+	//fmt.Println("RequestWallPubAddr:", req.RequestWallPubAddr)
 	conAddr, err := util.GetConAddrByReqPubKey(req.RequestWallPubAddr)
 	if err != nil {
 		http.Error(w, "Error retrieving wallet address: "+err.Error(), http.StatusInternalServerError)
@@ -102,24 +102,25 @@ func GetReqNFTHandler(w http.ResponseWriter, r *http.Request) {
 		log.Error("No wallet found for the given request address")
 		return
 	}
+	//fmt.Println("ConAddr:", conAddr)
 	response, err  := SendMessageToClient(conAddr, "getreqnft")
 	
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
+	//fmt.Println("Response from client:", response)
 	// Preprocess the response to extract the NFT ID
-	var nftID string
-	_, err = fmt.Sscanf(response, "NFT_AUTH %s", &nftID)
-	if err != nil {
-		http.Error(w, "Failed to parse NFT ID", http.StatusInternalServerError)
-		return
-	}
+	// var nftID string
+	// _, err = fmt.Sscanf(response, "NFT_AUTH %s", &nftID)
+	// if err != nil {
+	// 	http.Error(w, "Failed to parse NFT ID", http.StatusInternalServerError)
+	// 	return
+	// }
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
-		"nft": nftID,
+		"nft": response,
 	})
 }
 
@@ -135,7 +136,7 @@ func RemoveReqNFTHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer log.Sync()
 
-	if r.Method != http.MethodGet {
+	if r.Method != http.MethodPost {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 		return
 	}
